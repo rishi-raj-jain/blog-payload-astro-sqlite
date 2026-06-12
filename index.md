@@ -50,7 +50,7 @@ Next, create a CDN pull zone to serve stored files publicly. Go to **Delivery > 
 
 ![](./images/pull-1.png)
 
-Once it's provisioned, go to **General > Hostnames**:
+Once it's provisioned, go to **General > Hostnames** and look for your hostname in **Linked Hostnames**:
 
 ![](./images/pull-2.png)
 
