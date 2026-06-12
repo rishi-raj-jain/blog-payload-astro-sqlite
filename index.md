@@ -99,7 +99,7 @@ BUNNY_ZONE_NAME="blog-media"
 BUNNY_HOSTNAME="blog-media.b-cdn.net"
 ```
 
-Open `src/payload.config.ts` and replace its contents with the following:
+Next, open `src/payload.config.ts` and replace its contents with the following to asdasd:
 
 ```typescript
 // File: src/payload.config.ts
