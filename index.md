@@ -102,7 +102,7 @@ BUNNY_ZONE_NAME="blog-media"
 BUNNY_HOSTNAME="blog-media.b-cdn.net"
 ```
 
-Next, open `src/payload.config.ts` and replace its contents with the following to asdasd:
+Next, open `src/payload.config.ts` and replace its contents with the following to configure the storage and database connection to Bunny:
 
 ```typescript
 // File: src/payload.config.ts
