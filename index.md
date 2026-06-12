@@ -826,7 +826,7 @@ BUNNYNET_API_KEY    → your [Bunny API key](https://dash.bunny.net/account/api-
 APP_ID          → the App ID from the Magic Containers URL
 ```
 
-Now, add the deploy step to `build.yml` and push to Git:
+Now that the app exists and the secrets are in place, add the Magic Containers update step to your GitHub workflow and push to Git:
 
 ```yaml
       - name: Deploy to Magic Containers
