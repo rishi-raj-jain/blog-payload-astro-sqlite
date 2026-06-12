@@ -519,7 +519,7 @@ In the code above:
 
 ## Build the blog index page
 
-Replace the contents of `src/pages/index.astro`:
+Replace the contents of `src/pages/index.astro` with the following:
 
 ```astro
 ---
@@ -623,7 +623,11 @@ if (!post) return Astro.redirect("/404");
 </Layout>
 ```
 
-Both pages run in server-side rendering mode (`export const prerender = false`), which means Astro fetches data from Payload on every request rather than at build time. Payload stores `content` as Lexical JSON, so `convertLexicalToHTML` from `@payloadcms/richtext-lexical/html` converts it to HTML on the server before the response is sent. Cover image URLs come from Bunny CDN (`disablePayloadAccessControl: true` in the storage plugin), so images are served directly from the edge without the request touching the Payload container.
+In the pages above:
+
+- Both pages are rendered on the server (`export const prerender = false`), so Astro fetches fresh data from Payload on every request.
+- Payload stores the `content` field as Lexical JSON; `convertLexicalToHTML` from `@payloadcms/richtext-lexical/html` is used on the server to generate HTML before sending the response.
+- Cover image URLs are provided by Bunny CDN (because `disablePayloadAccessControl: true` is set in the storage plugin), so images are served directly from the edge, bypassing the Payload container.
 
 Start the Astro dev server with `npm run dev` and open `http://localhost:4321` to confirm the index and post pages load.
 
