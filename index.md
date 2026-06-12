@@ -98,8 +98,8 @@ DATABASE_AUTH_TOKEN="eyJ0eXAi..."
 PAYLOAD_SECRET="generate-a-long-random-string"  # openssl rand -base64 32
 
 BUNNY_STORAGE_API_KEY="..."
-BUNNY_ZONE_NAME="blog-media"
-BUNNY_HOSTNAME="blog-media.b-cdn.net"
+BUNNY_ZONE_NAME="blog-payload-media"
+BUNNY_HOSTNAME="blog-payload-media.b-cdn.net"
 ```
 
 Next, open `src/payload.config.ts` and replace its contents with the following to configure the storage and database connection to Bunny:
@@ -725,6 +725,8 @@ dist
 
 ## Deploy Payload CMS to Magic Containers
 
+In this section, you'll containerize and deploy your Payload CMS to Magic Containers, making it easy to run and manage in a production environment.
+
 ### Push the initial image
 
 Create `.github/workflows/build.yml` inside `backend-payload-sqlite` with the following code:
@@ -796,15 +798,12 @@ Open the **Environment Variables** tab and add the runtime variables:
 DATABASE_URL             → your Bunny Database libsql:// URL
 DATABASE_AUTH_TOKEN      → your full-access auth token
 PAYLOAD_SECRET           → your Payload secret
-NEXT_PUBLIC_SERVER_URL   → the Deployment URL of this app
 BUNNY_STORAGE_API_KEY    → your Bunny Storage API key
-BUNNY_ZONE_NAME          → blog-media
-BUNNY_HOSTNAME           → blog-media.b-cdn.net
+BUNNY_ZONE_NAME          → blog-payload-media
+BUNNY_HOSTNAME           → blog-payload-media.b-cdn.net
 ```
 
-Magic Containers injects these at startup so they never get baked into the image layer. Because the adapter uses an embedded replica (`file:./payload.db`), mount a persistent volume at `/app/payload.db` so the local database file survives container restarts.
-
-After the app is created, copy the **App ID** and the **Deployment URL**. The App ID goes into the `APP_ID` secret in the next step, and the Deployment URL is the value for `NEXT_PUBLIC_SERVER_URL` in your environment variables.
+After the app is created, copy the **App ID** and the **Deployment URL**. The App ID goes into the `APP_ID` secret in the next step, and the Deployment URL is the value for `NEXT_PUBLIC_SERVER_URL` in your environment variables after enabling the automatic deploys.
 
 ![](./images/container-3.png)
 
