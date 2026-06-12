@@ -838,7 +838,7 @@ Now that the app exists and the secrets are in place, add the Magic Containers u
           api_key: ${{ secrets.BUNNYNET_API_KEY }}
 ```
 
-Pushing to Git will automatically trigger the build of a new container image and updates your Magic Containers application with the latest image tag.
+Pushing this change will automatically trigger the build of a new container image and updates your Magic Containers application with the latest image tag.
 
 With all that done, every future push to `main` builds a new image, pushes it to GHCR, and rolls it out on Magic Containers.
 
