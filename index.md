@@ -45,9 +45,12 @@ Navigate to the **Access > API / HTTP** tab and copy the **Access Key > Password
 
 Keep the password somewhere safe. You will use it as `BUNNY_STORAGE_API_KEY` when configuring Payload.
 
-![](./images/pull-1.png)
 
 Next, create a CDN pull zone to serve stored files publicly. Go to **Delivery > CDN** and click **Add Pull Zone**. Enter the zone hostname like `blog-payload-media`, set Origin Type to Storage Zone, select the previously created storage zone from the dropdown and click **Add Pull Zone**.
+
+![](./images/pull-1.png)
+
+Once it's provisioned, go to **General > Hostnames**:
 
 ![](./images/pull-2.png)
 
