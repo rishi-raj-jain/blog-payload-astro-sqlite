@@ -778,7 +778,7 @@ jobs:
 
 No `build-args` are needed here because the Payload build does not require database credentials. Push a commit to `main` to trigger the first build. Once the image lands in GitHub Container Registry, create the Magic Containers app.
 
-Once pushed, wait for the build and push step to complete. The workflow output shows the full image name and tag that you will paste into Magic Containers:
+Once pushed, wait for the "Build and push" step to complete. The workflow output shows the full image name and tag that you will paste into Magic Containers:
 
 ![](./images/commit.png)
 
@@ -898,6 +898,10 @@ jobs:
           image_tag: "${{ github.sha }}"
           api_key: ${{ secrets.BUNNYNET_API_KEY }}
 ```
+
+No `build-args` are needed here because the Astro build does not Payload values. Push a commit to `main` to trigger the first build.
+
+Once pushed, wait for the build and push step to complete. The workflow output shows the full image name and tag that you will paste into Magic Containers:
 
 ### Create the Magic Containers app for Astro
 
