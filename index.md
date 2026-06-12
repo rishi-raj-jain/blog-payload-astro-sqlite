@@ -283,6 +283,8 @@ export const Authors: CollectionConfig = {
 }
 ```
 
+The code defines an Authors collection with author name, bio, and avatar (linked to Media), all readable by authenticated users via API.
+
 ### Tags
 
 ```typescript
@@ -305,6 +307,8 @@ export const Tags: CollectionConfig = {
   ],
 }
 ```
+
+The code defines a Tag collection with name and slug fields, both required, and makes them readable by authenticated users via API.
 
 ### Posts
 
@@ -362,6 +366,16 @@ export const Posts: CollectionConfig = {
   ],
 }
 ```
+
+The `Posts` collection includes the following fields:
+
+- `title`: a required text field for the post's name.
+- `slug`: a required, unique text field used as a URL-friendly identifier. It can be auto-filled from the title.
+- `cover`: an optional upload field that relates to a media item, used for the post's cover image.
+- `author`: a relationship field linking to an author entry.
+- `tags`: a relationship field (can have many entries) linking the post to one or more tag entries.
+- `content`: a richText field using the Lexical editor, where the main post content is written.
+- `publishedAt`: a date field, shown in the admin sidebar, representing when the post was or will be published.
 
 Every collection uses `read: ({ req: { user } }) => Boolean(user)`. This means any read request, whether from the admin panel or the REST API, must include a valid credential. `versions: { drafts: true }` on Posts enables the draft/publish workflow.
 
