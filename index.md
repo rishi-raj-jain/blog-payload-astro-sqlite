@@ -519,7 +519,7 @@ In the code above:
 
 ## Build the blog index page
 
-Replace the contents of `src/pages/index.astro` with the following:
+Replace the contents of `src/pages/index.astro` with the following code:
 
 ```astro
 ---
