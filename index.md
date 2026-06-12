@@ -812,7 +812,7 @@ Now, click **Add Container**, then **Next Step**, then **Confirm and Create**.
 
 While the container is being deployed, copy the following two values:
 
-- **App ID** from the URL in the browser (here, `Oluxxxx`)
+- **App ID** from the URL in the browser (here, `Oluxxx`)
 - **Deployment URL** from the top bar in the Bunny dashboard (here, `https://mc-xxx.bunny.run`)
 
 ![](./images/container-3.png)
