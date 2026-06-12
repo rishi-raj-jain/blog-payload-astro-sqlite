@@ -63,18 +63,18 @@ pnpm create payload-app@latest backend-payload-sqlite
 
 When prompted, choose:
 
-- `blank` as the project template.
-- `sqlite` as the database.
-- Use the connection string option when asked.
-- `none` as the Payload skill (no additional plugins from the wizard).
+- the blank project template
+- `SQLite` as the database
+- Enter the `DATABASE_URL` as the connection string
+- `none` as the Payload skill
 
-Change into the project directory:
+Once the install finishes, change into the project directory:
 
 ```bash
 cd backend-payload-sqlite
 ```
 
-Install the Bunny Storage plugin:
+Further, install the Bunny Storage plugin:
 
 ```bash
 pnpm add @seshuk/payload-storage-bunny
