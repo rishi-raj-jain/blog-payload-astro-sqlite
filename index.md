@@ -878,8 +878,8 @@ Magic Containers injects these at startup so they never get baked into the image
 Add these secrets to your GitHub repository under **Settings > Secrets and variables > Actions**:
 
 ```
-BUNNYNET_API_KEY    → your Bunny API key
-APP_ID          → the App ID from Magic Containers
+BUNNYNET_API_KEY    → your [Bunny API key](https://dash.bunny.net/account/api-key)
+APP_ID          → the App ID from the Magic Containers URL
 ```
 
 Add the deploy step to `build.yml`:
