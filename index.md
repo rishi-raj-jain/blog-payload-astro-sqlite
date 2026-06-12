@@ -3,9 +3,9 @@ meta_title: Build a self-hosted blog with Payload CMS, Astro, and SQLite on Bunn
 meta_description: A step-by-step guide for building a fully self-hosted blog with Payload CMS backed by Bunny Database (libSQL/SQLite), an Astro frontend, media on Bunny Storage, and both services deployed to Magic Containers with Bunny CDN in front.
 ---
 
-Most blog tutorials reach for a managed Postgres service and a third-party CMS host, then leave you paying separately for each layer. This guide takes a different path. Payload CMS is a TypeScript-first, code-defined CMS that ships with an official SQLite adapter built on libSQL and Drizzle ORM. Because [Bunny Database](https://bunny.net/database/) speaks libSQL natively, you can point Payload directly at it with a URL and an auth token. Add [Bunny Storage](https://bunny.net/storage/) for media uploads, deploy the CMS to [Magic Containers](https://bunny.net/magic-containers/), and put [Bunny CDN](https://bunny.net/cdn/) in front of the Astro frontend. You own every layer.
+Whenever I want to self-host a blog with a CMS, I often find myself running the backend on the CMS provider’s cloud and hosting the frontend elsewhere, making it a fragmented, multi-service setup. Bunny solves this by providing every layer you need for a self-hosted blog. [Bunny Database](https://bunny.net/database/) offers globally replicated SQLite over libSQL, [Bunny Storage](https://bunny.net/storage/) manages your media files, [Bunny CDN](https://bunny.net/cdn/) serves them quickly from the edge, and [Magic Containers](https://bunny.net/magic-containers/) lets you deploy your containerized apps worldwide.
 
-In this guide, you will scaffold a Payload CMS project, configure it to use Bunny Database as a remote SQLite replica, define collections for posts, authors, and tags in TypeScript, build an Astro frontend that reads from Payload's REST API using an API key, containerize the CMS, and deploy to Magic Containers.
+In this guide, I will show you how to set up a Payload CMS app, create collections for posts, authors, and tags, build an Astro frontend that gets data from Payload, and deploy everything to Magic Containers.
 
 ## Prerequisites
 
