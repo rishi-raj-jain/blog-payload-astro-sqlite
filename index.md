@@ -398,7 +398,7 @@ In the Payload admin panel (`/admin/collections/users/1`), go to **Users**, open
 
 ## Create a new Astro application
 
-Open a new terminal at the parent folder (outside `backend-payload-sqlite`) and scaffold the frontend:
+Open a new terminal at the parent folder (outside `backend-payload-sqlite`) and scaffold the frontend using:
 
 ```bash
 npm create astro@latest blog-astro-payload
