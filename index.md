@@ -421,17 +421,19 @@ The packages above provide:
 - [@payloadcms/richtext-lexical](https://www.npmjs.com/package/@payloadcms/richtext-lexical): exposes `convertLexicalToHTML`, which converts Payload's Lexical JSON content to HTML at build time.
 - [@tailwindcss/typography](https://tailwindcss.com/docs/typography-plugin): the `prose` class for rendering article HTML.
 
+Next, add the Node.js adapter so your Astro app can be built for standalone Node.js deployment. Run the following command and accept all prompts:
+
 ```
 npx astro add node
 ```
 
-Accept all prompts for the Node.js integration.
+Next, add the Tailwind CSS integration to your Astro app. Run the following command and accept all prompts:
 
 ```
 npx astro add tailwind
 ```
 
-Accept all prompts for the Tailwind integration. Update `tailwind.config.mjs` to enable the typography plugin:
+Next, update `tailwind.config.mjs` to enable the typography plugin to render the article with pre-build classes:
 
 ```javascript
 // File: tailwind.config.mjs
@@ -444,7 +446,7 @@ export default {
 }
 ```
  
-Create `src/layouts/Layout.astro`:
+Next, create a reusable layout component at `src/layouts/Layout.astro` with the following code:
 
 ```astro
 ---
@@ -466,7 +468,7 @@ import '../styles/global.css'
 </html>
 ```
 
-Create a `.env` file in `blog-astro-payload`:
+Finally, create a `.env` file at the root of the project with the API Key value as obtained from the earlier step:
 
 ```bash
 # .env
