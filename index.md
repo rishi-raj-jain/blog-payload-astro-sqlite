@@ -685,7 +685,7 @@ payload.db
 
 Because both Astro pages run in server-side rendering mode, `PAYLOAD_URL` and `PAYLOAD_API_KEY` are runtime variables. They do not need to be present during the Docker build. Magic Containers injects them at startup.
 
-Create `blog-astro-payload/Dockerfile`:
+Create a `Dockerfile` at the project root:
 
 ```dockerfile
 # File: blog-astro-payload/Dockerfile
@@ -713,7 +713,7 @@ EXPOSE 80
 CMD ["node", "./dist/server/entry.mjs"]
 ```
 
-Create `blog-astro-payload/.dockerignore`:
+Create `.dockerignore` at the project root:
 
 ```
 node_modules
