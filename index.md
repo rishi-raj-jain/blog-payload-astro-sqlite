@@ -633,7 +633,7 @@ Start the Astro dev server with `npm run dev` and open `http://localhost:4321` t
 
 ## Containerize Payload CMS
 
-Create a `Dockerfile` at the project root. The build uses corepack to enable pnpm, compiles the Next.js standalone output, and copies only the necessary artifacts into the final image:
+Create a `Dockerfile` at the project root with the following code. The build uses corepack to enable pnpm, compiles the Next.js standalone output, and copies only the necessary artifacts into the final image:
 
 ```dockerfile
 # File: backend-payload-sqlite/Dockerfile
@@ -670,7 +670,7 @@ CMD ["node", "server.js"]
 
 Notice that no database credentials are passed as `ARG` or baked in with `ENV` during the build. The Payload Next.js build does not require `DATABASE_URL` at compile time because the SQLite adapter opens the local file and connects to Bunny Database only at runtime. All secrets are injected by Magic Containers as environment variables when the container starts.
 
-Create `.dockerignore` at the project root:
+Create `.dockerignore` at the project root with the following code:
 
 ```
 node_modules
@@ -685,7 +685,7 @@ payload.db
 
 Because both Astro pages run in server-side rendering mode, `PAYLOAD_URL` and `PAYLOAD_API_KEY` are runtime variables. They do not need to be present during the Docker build. Magic Containers injects them at startup.
 
-Create a `Dockerfile` at the project root:
+Create a `Dockerfile` at the project root with the following code:
 
 ```dockerfile
 # File: blog-astro-payload/Dockerfile
@@ -713,7 +713,7 @@ EXPOSE 80
 CMD ["node", "./dist/server/entry.mjs"]
 ```
 
-Create `.dockerignore` at the project root:
+Create `.dockerignore` at the project root with the following code:
 
 ```
 node_modules
@@ -727,7 +727,7 @@ dist
 
 ### Push the initial image
 
-Create `.github/workflows/build.yml` inside `backend-payload-sqlite`:
+Create `.github/workflows/build.yml` inside `backend-payload-sqlite` with the following code:
 
 ```yaml
 # File: .github/workflows/build.yml
