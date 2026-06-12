@@ -1,0 +1,891 @@
+---
+meta_title: Build a self-hosted blog with Payload CMS, Astro, and SQLite on Bunny
+meta_description: A step-by-step guide for building a fully self-hosted blog with Payload CMS backed by Bunny Database (libSQL/SQLite), an Astro frontend, media on Bunny Storage, and both services deployed to Magic Containers with Bunny CDN in front.
+---
+
+Most blog tutorials reach for a managed Postgres service and a third-party CMS host, then leave you paying separately for each layer. This guide takes a different path. Payload CMS is a TypeScript-first, code-defined CMS that ships with an official SQLite adapter built on libSQL and Drizzle ORM. Because [Bunny Database](https://bunny.net/database/) speaks libSQL natively, you can point Payload directly at it with a URL and an auth token. Add [Bunny Storage](https://bunny.net/storage/) for media uploads, deploy the CMS to [Magic Containers](https://bunny.net/magic-containers/), and put [Bunny CDN](https://bunny.net/cdn/) in front of the Astro frontend. You own every layer.
+
+In this guide, you will scaffold a Payload CMS project, configure it to use Bunny Database as a remote SQLite replica, define collections for posts, authors, and tags in TypeScript, build an Astro frontend that reads from Payload's REST API using an API key, containerize the CMS, and deploy to Magic Containers.
+
+## Prerequisites
+
+To follow along in this guide, you will need the following:
+
+- [Node.js 18](https://nodejs.org/en) or later
+- A [Bunny.net](https://bunny.net) account
+- A [GitHub](https://github.com) account
+
+## Provision a Globally Replicated SQLite Database
+
+Using [Bunny Database](https://bunny.net/database/) gives you SQLite with libSQL replication globally, so the session reads stay fast no matter where your container runs.
+
+To get started, open the [Bunny dashboard](https://dash.bunny.net) and go to **Edge Platform > Database**. Click **Create Your First Database**, enter the **Database name**, select **Automatic region selection** and click **Add database**.
+
+![Bunny Database create database form with database name and automatic region selection](./images/database-1.png)
+
+Once it's provisioned, you will see that the Database URL and a Full-Access Token is available for you to use.
+
+![Bunny Database Access tab showing the libSQL URL and full-access token](./images/database-2.png)
+
+Save the Database URL and Full-Access Token somewhere safe to be used as the `BUNNY_DATABASE_URL` and `BUNNY_DATABASE_AUTH_TOKEN` further in the guide.
+
+## Provision a Bunny Storage Zone
+
+Media uploaded through the Payload admin panel will be stored in Bunny Storage and served from a CDN-backed pull zone. Set this up before configuring Payload so the credentials are ready.
+
+Open the Bunny dashboard and go to **Delivery > Storage**. Click **Add Storage Zone**, give it a name like `blog-payload-media`, and select the primary region closest to your deployment.
+
+![](./images/storage-1.png)
+
+Save the storage zone name somewhere safe to be used as the `BUNNY_ZONE_NAME` further in the guide.
+
+Navigate to the **Access > API / HTTP** tab and copy the **Access Key > Password**.
+
+![](./images/storage-2.png)
+
+Save the password somewhere safe to be used as the `BUNNY_STORAGE_API_KEY` further in the guide.
+
+![](./images/pull-1.png)
+
+Next, create a CDN pull zone to serve stored files publicly. Go to **Delivery > CDN** and click **Add Pull Zone**. Enter the zone hostname like `blog-payload-media`, set Origin Type to Storage Zone, select the previously created storage zone from the dropdown and click **Add Pull Zone**.
+
+![](./images/pull-2.png)
+
+Save the linked hostname somewhere safe to be used as the `BUNNY_HOSTNAME` further in the guide.
+
+## Create a Payload CMS project
+
+Payload's scaffolder creates a Next.js application with the admin panel embedded. Run:
+
+```bash
+pnpm create payload-app@latest backend-payload-sqlite
+```
+
+When prompted, choose:
+
+- `blank` as the project template.
+- `sqlite` as the database.
+- Use the connection string option when asked.
+- `none` as the Payload skill (no additional plugins from the wizard).
+
+Change into the project directory:
+
+```bash
+cd backend-payload-sqlite
+```
+
+Install the Bunny Storage plugin:
+
+```bash
+pnpm add @seshuk/payload-storage-bunny
+```
+
+[@seshuk/payload-storage-bunny](https://github.com/maximseshuk/payload-storage-bunny) is a community adapter that routes Payload media uploads directly to Bunny Storage, built on top of `@payloadcms/plugin-cloud-storage`.
+
+## Configure Payload with Bunny Database
+
+Create a `.env` file in the project root with all seven required values:
+
+```bash
+# .env
+
+DATABASE_URL="libsql://your-database-id.lite.bunnydb.net"
+DATABASE_AUTH_TOKEN="eyJ0eXAi..."
+
+PAYLOAD_SECRET="generate-a-long-random-string"  # openssl rand -base64 32
+NEXT_PUBLIC_SERVER_URL="http://localhost:3000"
+
+BUNNY_STORAGE_API_KEY="..."
+BUNNY_ZONE_NAME="blog-media"
+BUNNY_HOSTNAME="blog-media.b-cdn.net"
+```
+
+Open `src/payload.config.ts` and replace its contents with the following:
+
+```typescript
+// File: src/payload.config.ts
+
+import { sqliteAdapter } from '@payloadcms/db-sqlite'
+import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import path from 'path'
+import { buildConfig } from 'payload'
+import { fileURLToPath } from 'url'
+import sharp from 'sharp'
+import { bunnyStorage } from '@seshuk/payload-storage-bunny'
+
+import { Users } from './collections/Users'
+import { Media } from './collections/Media'
+import { Authors } from './collections/Authors'
+import { Tags } from './collections/Tags'
+import { Posts } from './collections/Posts'
+
+const filename = fileURLToPath(import.meta.url)
+const dirname = path.dirname(filename)
+
+export default buildConfig({
+  cors: '*',
+  admin: {
+    user: Users.slug,
+    importMap: {
+      baseDir: path.resolve(dirname),
+    },
+  },
+  collections: [Users, Media, Authors, Tags, Posts],
+  editor: lexicalEditor(),
+  secret: process.env.PAYLOAD_SECRET || '',
+  typescript: {
+    outputFile: path.resolve(dirname, 'payload-types.ts'),
+  },
+  db: sqliteAdapter({
+    client: {
+      // Embedded replica: reads from local file (no replication lag),
+      // writes sync back to Bunny Database via syncUrl.
+      url: 'file:./payload.db',
+      syncUrl: process.env.DATABASE_URL || '',
+      authToken: process.env.DATABASE_AUTH_TOKEN || '',
+      syncInterval: 60,
+    },
+  }),
+  sharp,
+  plugins: [
+    bunnyStorage({
+      collections: {
+        media: {
+          prefix: 'media',
+          disablePayloadAccessControl: true,
+        },
+      },
+      storage: {
+        apiKey: process.env.BUNNY_STORAGE_API_KEY || '',
+        hostname: process.env.BUNNY_HOSTNAME || '',
+        zoneName: process.env.BUNNY_ZONE_NAME || '',
+      },
+    }),
+  ],
+})
+```
+
+Two things to note about the database configuration. First, the SQLite adapter uses an **embedded replica**: `url: 'file:./payload.db'` keeps a local SQLite file that Payload reads from, while `syncUrl` points to Bunny Database. Every write goes to the remote immediately and the local file stays in sync. This avoids a replication-lag bug where Payload writes a row and then immediately reads it back before the write has propagated to a remote replica. Second, `cors: '*'` allows the Astro frontend to call Payload's REST API from a different origin.
+
+## Set up `next.config.ts`
+
+Update `next.config.ts` to enable standalone output (required for Docker):
+
+```typescript
+// File: next.config.ts
+
+import { withPayload } from '@payloadcms/next/withPayload'
+import type { NextConfig } from 'next'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const dirname = path.dirname(__filename)
+
+const nextConfig: NextConfig = {
+  images: {
+    localPatterns: [
+      {
+        pathname: '/api/media/file/**',
+      },
+    ],
+  },
+  webpack: (webpackConfig) => {
+    webpackConfig.resolve.extensionAlias = {
+      '.cjs': ['.cts', '.cjs'],
+      '.js': ['.ts', '.tsx', '.js', '.jsx'],
+      '.mjs': ['.mts', '.mjs'],
+    }
+    return webpackConfig
+  },
+  turbopack: {
+    root: path.resolve(dirname),
+  },
+  output: 'standalone',
+}
+
+export default withPayload(nextConfig, { devBundleServerPackages: false })
+```
+
+## Define the collections in TypeScript
+
+Create a `src/collections/` folder if it does not already exist, then add the following five files.
+
+### Users
+
+```typescript
+// File: src/collections/Users.ts
+
+import type { CollectionConfig } from 'payload'
+
+export const Users: CollectionConfig = {
+  slug: 'users',
+  admin: {
+    useAsTitle: 'email',
+  },
+  auth: {
+    useAPIKey: true,
+  },
+  fields: [],
+}
+```
+
+`useAPIKey: true` lets Payload generate a long-lived API key for any user. The Astro frontend will use this key in an `Authorization` header to fetch content, so no session cookie or OAuth flow is needed for the read-only Astro build.
+
+### Media
+
+```typescript
+// File: src/collections/Media.ts
+
+import type { CollectionConfig } from 'payload'
+
+export const Media: CollectionConfig = {
+  slug: 'media',
+  access: {
+    read: ({ req: { user } }) => Boolean(user),
+  },
+  fields: [
+    {
+      name: 'alt',
+      type: 'text',
+      required: true,
+    },
+  ],
+  upload: true,
+}
+```
+
+`upload: true` enables file uploads on this collection. The `bunnyStorage` plugin intercepts every upload and routes it to Bunny Storage, so no files are written to the container disk.
+
+### Authors
+
+```typescript
+// File: src/collections/Authors.ts
+
+import type { CollectionConfig } from 'payload'
+
+export const Authors: CollectionConfig = {
+  slug: 'authors',
+  admin: { useAsTitle: 'name' },
+  access: { read: ({ req: { user } }) => Boolean(user) },
+  fields: [
+    { name: 'name', type: 'text', required: true },
+    { name: 'bio', type: 'textarea' },
+    { name: 'avatar', type: 'upload', relationTo: 'media' },
+  ],
+}
+```
+
+### Tags
+
+```typescript
+// File: src/collections/Tags.ts
+
+import type { CollectionConfig } from 'payload'
+
+export const Tags: CollectionConfig = {
+  slug: 'tags',
+  admin: { useAsTitle: 'name' },
+  access: { read: ({ req: { user } }) => Boolean(user) },
+  fields: [
+    { name: 'name', type: 'text', required: true },
+    {
+      name: 'slug',
+      type: 'text',
+      required: true,
+      admin: { description: 'URL-friendly identifier, e.g. web-performance' },
+    },
+  ],
+}
+```
+
+### Posts
+
+```typescript
+// File: src/collections/Posts.ts
+
+import { lexicalEditor } from '@payloadcms/richtext-lexical'
+import type { CollectionConfig } from 'payload'
+
+export const Posts: CollectionConfig = {
+  slug: 'posts',
+  admin: {
+    useAsTitle: 'title',
+    defaultColumns: ['title', 'author', 'status', 'publishedAt'],
+  },
+  access: { read: ({ req: { user } }) => Boolean(user) },
+  versions: {
+    drafts: true,
+  },
+  fields: [
+    { name: 'title', type: 'text', required: true },
+    {
+      name: 'slug',
+      type: 'text',
+      required: true,
+      unique: true,
+      admin: { description: 'URL-friendly identifier, auto-fill from the title' },
+    },
+    {
+      name: 'cover',
+      type: 'upload',
+      relationTo: 'media',
+    },
+    {
+      name: 'author',
+      type: 'relationship',
+      relationTo: 'authors',
+    },
+    {
+      name: 'tags',
+      type: 'relationship',
+      relationTo: 'tags',
+      hasMany: true,
+    },
+    {
+      name: 'content',
+      type: 'richText',
+      editor: lexicalEditor(),
+    },
+    {
+      name: 'publishedAt',
+      type: 'date',
+      admin: { position: 'sidebar' },
+    },
+  ],
+}
+```
+
+Every collection uses `read: ({ req: { user } }) => Boolean(user)`. This means any read request, whether from the admin panel or the REST API, must include a valid credential. `versions: { drafts: true }` on Posts enables the draft/publish workflow.
+
+## Start Payload and create an API key
+
+Start the development server:
+
+```bash
+pnpm dev
+```
+
+Payload creates the local `payload.db` file, pushes the schema in development mode, and syncs the tables to Bunny Database. Open `http://localhost:3000/admin`, create your first admin account, and then add some Author, Tag, and Post entries. Upload cover images through the Media collection. They land in Bunny Storage and come back as CDN URLs in the API response.
+
+### Generate an API key for Astro
+
+![](./images/user-1.png)
+
+In the Payload admin panel (`/admin/collections/users/1`), go to **Users**, open your admin user, click **Enable API Key** and click **Save**. Copy the key and save it as `PAYLOAD_API_KEY`. The Astro frontend will send it as an HTTP header on every request.
+
+## Create a new Astro application
+
+Open a new terminal at the parent folder (outside `backend-payload-sqlite`) and scaffold the frontend:
+
+```bash
+npm create astro@latest blog-astro-payload
+```
+
+When prompted, choose:
+
+- `use minimal (empty) template` as the starting template.
+- `Yes` to install dependencies and initialize a git repository.
+
+Change into the directory and install dependencies:
+
+```bash
+cd blog-astro-payload
+npm install @payloadcms/richtext-lexical @tailwindcss/typography
+```
+
+The packages above provide:
+
+- [@payloadcms/richtext-lexical](https://www.npmjs.com/package/@payloadcms/richtext-lexical): exposes `convertLexicalToHTML`, which converts Payload's Lexical JSON content to HTML at build time.
+- [@tailwindcss/typography](https://tailwindcss.com/docs/typography-plugin): the `prose` class for rendering article HTML.
+
+```
+npx astro add node
+```
+
+Accept all prompts for the Node.js integration.
+
+```
+npx astro add tailwind
+```
+
+Accept all prompts for the Tailwind integration. Update `tailwind.config.mjs` to enable the typography plugin:
+
+```javascript
+// File: tailwind.config.mjs
+
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ['./src/**/*.{astro,html,js,jsx,md,mdx,svelte,ts,tsx,vue}'],
+  theme: { extend: {} },
+  plugins: [require('@tailwindcss/typography')],
+}
+```
+ 
+Create a layout at layouts/Layout.astro:
+
+```astro
+---
+// File: src/layouts/Layout.astro
+
+import '../styles/global.css'
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+  </head>
+  <body class="bg-white px-6 py-12 max-w-3xl mx-auto">
+    <slot />
+  </body>
+</html>
+```
+
+Create a `.env` file in `blog-astro-payload`:
+
+```bash
+# .env
+
+PAYLOAD_URL="http://localhost:3000"
+PAYLOAD_API_KEY="your-api-key-from-above"
+```
+
+## Create a Payload API client
+
+Create `src/lib/payload.ts` to centralize all API calls. Because every collection requires authentication, every fetch must include an `Authorization` header using the API key format Payload expects:
+
+```typescript
+// File: src/lib/payload.ts
+
+const PAYLOAD_URL = import.meta.env.PAYLOAD_URL || 'http://localhost:3000'
+const PAYLOAD_API_KEY = import.meta.env.PAYLOAD_API_KEY || ''
+
+const headers = {
+  Authorization: `users API-Key ${PAYLOAD_API_KEY}`,
+}
+
+export async function getPosts() {
+  const res = await fetch(
+    `${PAYLOAD_URL}/api/posts?where[_status][equals]=published&sort=-publishedAt&depth=2`,
+    { headers }
+  )
+  if (!res.ok) return []
+  const data = await res.json()
+  return data.docs || []
+}
+
+export async function getPost(slug: string) {
+  const res = await fetch(
+    `${PAYLOAD_URL}/api/posts?where[slug][equals]=${encodeURIComponent(slug)}&where[_status][equals]=published&depth=2&limit=1`,
+    { headers }
+  )
+  if (!res.ok) return null
+  const data = await res.json()
+  return data.docs?.[0] || null
+}
+```
+
+Two things to note about the Payload REST API. First, bracket notation is required for `where` queries. The correct form is `where[slug][equals]=value`. JSON-encoded query strings will silently return empty results. Second, `depth=2` tells Payload to expand relationship fields (author, tags, cover) inline so the Astro pages do not need a second fetch.
+
+## Build the blog index page
+
+Replace the contents of `src/pages/index.astro`:
+
+```astro
+---
+// File: src/pages/index.astro
+
+export const prerender = false;
+
+import { getPosts } from "../lib/payload";
+import Layout from "../layouts/Layout.astro";
+
+const posts = await getPosts();
+---
+
+<Layout>
+  <h1 class="text-4xl font-bold mb-10">Blog</h1>
+  <ul class="space-y-10">
+    {
+      posts.map((post: any) => (
+        <li>
+          {post.cover?.url && (
+            <img
+              src={post.cover.url}
+              alt={post.cover.alt || post.title}
+              class="w-full rounded-xl mb-4 object-cover h-52"
+            />
+          )}
+          <a
+            href={`/${post.slug}`}
+            class="text-2xl font-semibold hover:underline"
+          >
+            {post.title}
+          </a>
+          {post.author?.name && (
+            <p class="mt-1 text-sm text-gray-500">by {post.author.name}</p>
+          )}
+          {post.tags?.length > 0 && (
+            <div class="mt-2 flex gap-2 flex-wrap">
+              {post.tags.map((tag: any) => (
+                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                  {tag.name}
+                </span>
+              ))}
+            </div>
+          )}
+        </li>
+      ))
+    }
+  </ul>
+</Layout>
+```
+
+## Create dynamic post pages
+
+Create `src/pages/[slug].astro` to generate one page per published post at build time:
+
+```astro
+---
+// File: src/pages/[slug].astro
+
+export const prerender = false;
+
+import { getPost } from "../lib/payload";
+import Layout from "../layouts/Layout.astro";
+import { convertLexicalToHTML } from "@payloadcms/richtext-lexical/html";
+
+const { slug } = Astro.params;
+if (!slug) return Astro.redirect("/404");
+const post = await getPost(slug);
+const html = convertLexicalToHTML({ data: post.content });
+if (!post) return Astro.redirect("/404");
+---
+
+<Layout>
+  {
+    post.cover?.url && (
+      <img
+        src={post.cover.url}
+        alt={post.cover.alt || post.title}
+        class="w-full rounded-xl mb-8 object-cover h-72"
+      />
+    )
+  }
+  <h1 class="text-4xl font-bold mb-4">{post.title}</h1>
+  {
+    post.author?.name && (
+      <p class="text-sm text-gray-500 mb-6">by {post.author.name}</p>
+    )
+  }
+  {
+    post.tags?.length > 0 && (
+      <div class="flex gap-2 flex-wrap mb-8">
+        {post.tags.map((tag: any) => (
+          <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+            {tag.name}
+          </span>
+        ))}
+      </div>
+    )
+  }
+  <article class="prose max-w-none" set:html={html || ""} />
+</Layout>
+```
+
+`getStaticPaths` calls `getPosts` to enumerate all published post slugs. Astro generates one HTML file per post at build time. Payload stores `content` as Lexical JSON, so `convertLexicalToHTML` from `@payloadcms/richtext-lexical/html` converts it to HTML on the server during the build. Since cover image URLs come from Bunny CDN (`disablePayloadAccessControl: true` in the storage plugin), images are served directly from the edge without the request touching the Payload container.
+
+Start the Astro dev server with `npm run dev` and open `http://localhost:4321` to confirm the index and post pages load.
+
+## Containerize Payload CMS
+
+The Dockerfile in the scaffolded project already includes a multi-stage build. Confirm `src/Dockerfile` (or the root `Dockerfile`) matches the following pattern. It auto-detects pnpm from the lockfile and copies standalone output:
+
+```dockerfile
+# File: backend-payload-sqlite/Dockerfile
+
+FROM node:22-alpine AS base
+
+# Install pnpm 10 explicitly and enable corepack
+FROM base AS deps
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@10.0.0 --activate
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+RUN corepack enable && corepack prepare pnpm@10.0.0 --activate && pnpm run build
+
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+# Correct copy operations to ensure artifacts are present in the final image, using multi-stage build conventions.
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+ENV PORT=80
+EXPOSE 80
+
+CMD ["node", "server.js"]
+```
+
+Notice that no database credentials are passed as `ARG` or baked in with `ENV` during the build. The Payload Next.js build does not require `DATABASE_URL` at compile time because the SQLite adapter opens the local file and connects to Bunny Database only at runtime. All secrets are injected by Magic Containers as environment variables when the container starts.
+
+Create `.dockerignore` at the project root:
+
+```
+node_modules
+.next
+.env
+.env.*
+!.env.example
+payload.db
+```
+
+## Containerize Astro
+
+Astro does not fetch content from Payload at build time since we are not prenrendering, so `PAYLOAD_URL` and `PAYLOAD_API_KEY` are not required during the buld time.
+
+Create `blog-astro-payload/Dockerfile`:
+
+```dockerfile
+# File: blog-astro-payload/Dockerfile
+
+FROM node:22-alpine AS base
+WORKDIR /app
+COPY package*.json ./
+
+FROM base AS deps
+RUN npm install
+
+FROM deps AS build
+COPY . .
+RUN npm run build
+
+FROM base AS runtime
+COPY package*.json ./
+RUN npm install --omit=dev
+COPY --from=build /app/dist ./dist
+
+ENV HOST=0.0.0.0
+ENV PORT=80
+EXPOSE 80
+
+CMD ["node", "./dist/server/entry.mjs"]
+```
+
+Create `blog-astro-payload/.dockerignore`:
+
+```
+node_modules
+dist
+.env
+.env.*
+!.env.example
+```
+
+## Deploy Payload CMS to Magic Containers
+
+### Push the initial image
+
+Create `.github/workflows/build.yml` inside `backend-payload-sqlite`:
+
+```yaml
+# File: .github/workflows/build.yml
+
+name: Build and Push (Payload)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          provenance: false
+          sbom: false
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+```
+
+No `build-args` are needed here because the Payload build does not require database credentials. Push a commit to `main` to trigger the first build. Once the image lands in GitHub Container Registry, create the Magic Containers app.
+
+### Create the Magic Containers app for Payload
+
+Open the Bunny dashboard and go to **Magic Containers**. Click **Add Application**, paste the image URL from GitHub Container Registry, and click **Create Application**.
+
+After the app is created, copy the **App ID** and the **Deployment URL**.
+
+Open the **Environment Variables** tab and add the runtime variables:
+
+```
+DATABASE_URL             → your Bunny Database libsql:// URL
+DATABASE_AUTH_TOKEN      → your full-access auth token
+PAYLOAD_SECRET           → your Payload secret
+NEXT_PUBLIC_SERVER_URL   → the Deployment URL of this app
+BUNNY_STORAGE_API_KEY    → your Bunny Storage API key
+BUNNY_ZONE_NAME          → blog-media
+BUNNY_HOSTNAME           → blog-media.b-cdn.net
+```
+
+Magic Containers injects these at startup so they never get baked into the image layer. Because the adapter uses an embedded replica (`file:./payload.db`), mount a persistent volume at `/app/payload.db` so the local database file survives container restarts.
+
+### Enable automatic deploys
+
+Add these secrets to your GitHub repository under **Settings > Secrets and variables > Actions**:
+
+```
+BUNNYNET_API_KEY    → your Bunny API key
+APP_ID          → the App ID from Magic Containers
+```
+
+Add the deploy step to `build.yml`:
+
+```yaml
+      - name: Deploy to Magic Containers
+        uses: BunnyWay/actions/container-update-image@main
+        with:
+          container: app
+          app_id: ${{ secrets.APP_ID }}
+          image_tag: "${{ github.sha }}"
+          api_key: ${{ secrets.BUNNYNET_API_KEY }}
+```
+
+Push to git to deploy automatically
+
+## Deploy Astro to Magic Containers
+
+### Push the initial image
+
+Create `.github/workflows/build.yml` inside `blog-astro-payload`:
+
+```yaml
+# File: blog-astro-payload/.github/workflows/build.yml
+
+name: Build and Push (Astro)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          provenance: false
+          sbom: false
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Deploy to Magic Containers
+        uses: BunnyWay/actions/container-update-image@main
+        with:
+          container: app
+          app_id: ${{ secrets.APP_ID }}
+          image_tag: "${{ github.sha }}"
+          api_key: ${{ secrets.BUNNYNET_API_KEY }}
+```
+
+### Create the Magic Containers app for Astro
+
+Open the Bunny dashboard and go to **Magic Containers**. Click **Add Application**, paste the image URL from GitHub Container Registry, and click **Create Application**.
+
+After the app is created, copy the **App ID** and the **Deployment URL**.
+
+Open the **Environment Variables** tab and add the runtime variables:
+
+```
+PAYLOAD_URL             → the Deployment URL of your Payload Magic Containers app
+PAYLOAD_API_KEY     → the API key you generated in the Payload admin panel
+APP_ID     → the App ID of your Astro Magic Containers app
+```
+
+Magic Containers injects these at startup so they never get baked into the image layer.
+
+### Enable automatic deploys
+
+Add these secrets to your GitHub repository under **Settings > Secrets and variables > Actions**:
+
+```
+BUNNYNET_API_KEY    → your Bunny API key
+APP_ID          → the App ID from Magic Containers
+```
+
+Add the deploy step to `build.yml`:
+
+```yaml
+      - name: Deploy to Magic Containers
+        uses: BunnyWay/actions/container-update-image@main
+        with:
+          container: app
+          app_id: ${{ secrets.APP_ID }}
+          image_tag: "${{ github.sha }}"
+          api_key: ${{ secrets.BUNNYNET_API_KEY }}
+```
+
+Push to git to deploy automatically.
+
+## Summary
+
+In this guide, you built a fully self-hosted blog where Payload CMS connects to Bunny Database over libSQL using an embedded replica to avoid replication-lag errors, media uploads go to Bunny Storage with CDN URLs returned automatically, and the Astro frontend reads from Payload's authenticated REST API using a user API key. The complete stack (database, storage, compute, and CDN) runs on Bunny infrastructure without any third-party managed services.
+
+As a next step, consider adding a webhook from Payload that triggers a new Astro build whenever you publish content, or extend the Posts collection with a `seo` group using Payload's built-in SEO plugin.
