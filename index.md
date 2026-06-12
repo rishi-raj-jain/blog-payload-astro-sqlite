@@ -167,7 +167,12 @@ export default buildConfig({
 })
 ```
 
-Two things to note about the database configuration. First, the SQLite adapter uses an **embedded replica**: `url: 'file:./payload.db'` keeps a local SQLite file that Payload reads from, while `syncUrl` points to Bunny Database. Every write goes to the remote immediately and the local file stays in sync. This avoids a replication-lag bug where Payload writes a row and then immediately reads it back before the write has propagated to a remote replica. Second, `cors: '*'` allows the Astro frontend to call Payload's REST API from a different origin.
+In the code above:
+
+  - The config sets up Payload to use the Lexical editor for rich content editing in the admin panel.
+  - The bunnyStorage plugin is configured to store media uploads on Bunny CDN, with the relevant API key, hostname, and storage zone injected from environment variables.
+  - The SQLite adapter is configured to use an **embedded replica** with `url: 'file:./payload.db'`. This stores a local SQLite file that Payload reads from, while `syncUrl` connects to Bunny Database for remote synchronization. Each write is sent immediately to the remote database and the local file is kept in sync, preventing issues with replication lag (such as reading stale data right after a write).
+  - Setting `cors: '*'` enables the Astro frontend to access Payload’s REST API from a different origin.
 
 ## Set up `next.config.ts`
 
