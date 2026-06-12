@@ -903,6 +903,8 @@ No `build-args` are needed here because the Astro build does not Payload values.
 
 Once pushed, wait for the build and push step to complete. The workflow output shows the full image name and tag that you will paste into Magic Containers:
 
+![](./images/commit-2.png)
+
 ### Create the Magic Containers app for Astro
 
 To deploy your Docker container on Bunny, open the [Bunny dashboard](https://dash.bunny.net), go to **Edge Platform > Magic Containers > Add Your First App**. Enter an app name and click **Next Step**.
@@ -914,20 +916,24 @@ Now, click **Add Container** and configure the container as follows:
 - Set the image name to your repository path, for example `rishi-raj-jain/blog-astro-payload`
 - Set the image tag to the commit SHA from your latest GitHub Actions run
 
-Click **Add endpoint**, and then open the **Environment Variables** tab and add the runtime variables:
+![](./images/container-4.png)
 
-Open the **Environment Variables** tab and add the runtime variables:
+Click **Add endpoint**, and then open the **Environment Variables** tab and add the runtime variables:
 
 ```
 PAYLOAD_URL             → the Deployment URL of your Payload Magic Containers app
 PAYLOAD_API_KEY     → the API key you generated in the Payload admin panel
 ```
 
+![](./images/container-5.png)
+
 Click **Add Container**, then **Next Step**, then **Confirm and Create**.
 
 While the container is being deployed, copy the following value:
 
 - **App ID** from the URL in the browser (here, `R0pxxx`)
+
+![](./images/container-6.png)
 
 ### Enable automatic deploys
 
