@@ -237,7 +237,7 @@ export const Users: CollectionConfig = {
 }
 ```
 
-`useAPIKey: true` lets Payload generate a long-lived API key for any user. The Astro frontend will use this key in an `Authorization` header to fetch content, so no session cookie or OAuth flow is needed for the read-only Astro build.
+`useAPIKey: true` lets Payload generate a long-lived API key for any user. The Astro frontend will use this key in an `Authorization` header to fetch content, so no session cookie or OAuth flow would be needed in production.
 
 ### Media
 
