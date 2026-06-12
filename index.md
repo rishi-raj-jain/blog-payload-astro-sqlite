@@ -816,7 +816,7 @@ BUNNYNET_API_KEY    → your [Bunny API key](https://dash.bunny.net/account/api-
 APP_ID          → the App ID from the Magic Containers URL
 ```
 
-Add the deploy step to `build.yml`:
+Now, add the deploy step to `build.yml` and push to Git:
 
 ```yaml
       - name: Deploy to Magic Containers
@@ -827,6 +827,10 @@ Add the deploy step to `build.yml`:
           image_tag: "${{ github.sha }}"
           api_key: ${{ secrets.BUNNYNET_API_KEY }}
 ```
+
+Pushing to Git will automatically trigger the build of a new container image and updates your Magic Containers application with the latest image tag.
+
+Once that deploys, edit the Container to have the `NEXT_PUBLIC_SERVER_URL` environment variable equivalent to your deployed application URL.
 
 With all that done, every future push to `main` builds a new image, pushes it to GHCR, and rolls it out on Magic Containers.
 
