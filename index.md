@@ -951,5 +951,3 @@ With all that done, every future push to `main` builds a new image, pushes it to
 ## Summary
 
 In this guide, you built a fully self-hosted blog where Payload CMS connects to Bunny Database over libSQL using an embedded replica to avoid replication-lag errors, media uploads go to Bunny Storage with CDN URLs returned automatically, and the Astro frontend reads from Payload's authenticated REST API using a user API key. The complete stack (database, storage, compute, and CDN) runs on Bunny infrastructure without any third-party managed services.
-
-As a next step, consider adding a webhook from Payload that triggers a new Astro build whenever you publish content, or extend the Posts collection with a `seo` group using Payload's built-in SEO plugin.
