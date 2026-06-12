@@ -87,7 +87,7 @@ pnpm add @seshuk/payload-storage-bunny
 
 ## Configure Payload with Bunny Database
 
-Update the `.env` file in the project root with all the required variables:
+Update the `.env` file in the project root with all the variables you obtained earlier:
 
 ```bash
 # .env
