@@ -810,7 +810,10 @@ BUNNY_HOSTNAME           → blog-payload-media.b-cdn.net
 
 Now, click **Add Container**, then **Next Step**, then **Confirm and Create**.
 
-After the app is created, copy the **App ID** and the **Deployment URL**. The App ID goes into the `APP_ID` secret in the next step, and the Deployment URL is the value for `NEXT_PUBLIC_SERVER_URL` in your environment variables after enabling the automatic deploys.
+While the container is being deployed, copy the following two values:
+
+- **App ID** from the URL in the browser (here, `Oluxxxx`)
+- **Deployment URL** from the top bar in the Bunny dashboard (here, `https://mc-xxx.bunny.run`)
 
 ![](./images/container-3.png)
 
