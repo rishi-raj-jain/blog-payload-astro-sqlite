@@ -901,19 +901,29 @@ jobs:
 
 ### Create the Magic Containers app for Astro
 
-Open the Bunny dashboard and go to **Magic Containers**. Click **Add Application**, paste the image name and image tag from GitHub Container Registry, and click **Create Application**.
+To deploy your Docker container on Bunny, open the [Bunny dashboard](https://dash.bunny.net), go to **Edge Platform > Magic Containers > Add Your First App**. Enter an app name and click **Next Step**.
 
-After the app is created, copy the **App ID** and the **Deployment URL**.
+Now, click **Add Container** and configure the container as follows:
+
+- Set the container name to `app`
+- Select **GitHub Public registry**
+- Set the image name to your repository path, for example `rishi-raj-jain/blog-astro-payload`
+- Set the image tag to the commit SHA from your latest GitHub Actions run
+
+Click **Add endpoint**, and then open the **Environment Variables** tab and add the runtime variables:
 
 Open the **Environment Variables** tab and add the runtime variables:
 
 ```
 PAYLOAD_URL             → the Deployment URL of your Payload Magic Containers app
 PAYLOAD_API_KEY     → the API key you generated in the Payload admin panel
-APP_ID     → the App ID of your Astro Magic Containers app
 ```
 
-Magic Containers injects these at startup so they never get baked into the image layer.
+Click **Add Container**, then **Next Step**, then **Confirm and Create**.
+
+While the container is being deployed, copy the following value:
+
+- **App ID** from the URL in the browser (here, `R0pxxx`)
 
 ### Enable automatic deploys
 
@@ -924,7 +934,7 @@ BUNNYNET_API_KEY    → your [Bunny API key](https://dash.bunny.net/account/api-
 APP_ID          → the App ID from the Magic Containers URL
 ```
 
-Add the deploy step to `build.yml`:
+Now that the app exists and the secrets are in place, add the Magic Containers update step to your GitHub workflow and push to Git:
 
 ```yaml
       - name: Deploy to Magic Containers
