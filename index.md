@@ -84,7 +84,7 @@ pnpm add @seshuk/payload-storage-bunny
 
 ## Configure Payload with Bunny Database
 
-Create a `.env` file in the project root with all seven required values:
+Update the `.env` file in the project root with all the required variables:
 
 ```bash
 # .env
@@ -93,7 +93,6 @@ DATABASE_URL="libsql://your-database-id.lite.bunnydb.net"
 DATABASE_AUTH_TOKEN="eyJ0eXAi..."
 
 PAYLOAD_SECRET="generate-a-long-random-string"  # openssl rand -base64 32
-NEXT_PUBLIC_SERVER_URL="http://localhost:3000"
 
 BUNNY_STORAGE_API_KEY="..."
 BUNNY_ZONE_NAME="blog-media"
