@@ -784,15 +784,18 @@ Once pushed, wait for the build and push step to complete. The workflow output s
 
 ### Create the Magic Containers app for Payload
 
+To deploy your Docker container on Bunny, open the [Bunny dashboard](https://dash.bunny.net), go to **Edge Platform > Magic Containers > Add Your First App**. Enter an app name and click **Next Step**.
+
+Now, click **Add Container** and configure the container as follows:
+
+- Set the container name to `app`
+- Select **GitHub Public registry**
+- Set the image name to your repository path, for example `rishi-raj-jain/backend-payload-sqlite`
+- Set the image tag to the commit SHA from your latest GitHub Actions run
+
 ![](./images/container-1.png)
 
-Open the Bunny dashboard and go to **Magic Containers**. Click **Add Application**, paste the image URL from GitHub Container Registry, and click **Create Application**.
-
-Set the container name to **app**, click **Add endpoint**, and then add the environment variables from the steps above:
-
-![](./images/container-2.png)
-
-Open the **Environment Variables** tab and add the runtime variables:
+Click **Add endpoint**, and then open the **Environment Variables** tab and add the runtime variables:
 
 ```
 DATABASE_URL             → your Bunny Database libsql:// URL
@@ -802,6 +805,10 @@ BUNNY_STORAGE_API_KEY    → your Bunny Storage API key
 BUNNY_ZONE_NAME          → blog-payload-media
 BUNNY_HOSTNAME           → blog-payload-media.b-cdn.net
 ```
+
+![](./images/container-2.png)
+
+Now, click **Add Container**, then **Next Step**, then **Confirm and Create**.
 
 After the app is created, copy the **App ID** and the **Deployment URL**. The App ID goes into the `APP_ID` secret in the next step, and the Deployment URL is the value for `NEXT_PUBLIC_SERVER_URL` in your environment variables after enabling the automatic deploys.
 
@@ -829,8 +836,6 @@ Now, add the deploy step to `build.yml` and push to Git:
 ```
 
 Pushing to Git will automatically trigger the build of a new container image and updates your Magic Containers application with the latest image tag.
-
-Once that deploys, edit the Container to have the `NEXT_PUBLIC_SERVER_URL` environment variable equivalent to your deployed application URL.
 
 With all that done, every future push to `main` builds a new image, pushes it to GHCR, and rolls it out on Magic Containers.
 
@@ -893,7 +898,7 @@ jobs:
 
 ### Create the Magic Containers app for Astro
 
-Open the Bunny dashboard and go to **Magic Containers**. Click **Add Application**, paste the image URL from GitHub Container Registry, and click **Create Application**.
+Open the Bunny dashboard and go to **Magic Containers**. Click **Add Application**, paste the image name and image tag from GitHub Container Registry, and click **Create Application**.
 
 After the app is created, copy the **App ID** and the **Deployment URL**.
 
