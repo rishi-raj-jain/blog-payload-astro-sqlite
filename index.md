@@ -55,7 +55,7 @@ Keep the linked hostname somewhere safe. You will use it as `BUNNY_HOSTNAME` whe
 
 ## Create a Payload CMS project
 
-Payload's scaffolder creates a Next.js application with the admin panel embedded. Run:
+Payload's scaffolder creates a Next.js application with the admin panel embedded. Run the following command to get started:
 
 ```bash
 pnpm create payload-app@latest backend-payload-sqlite
