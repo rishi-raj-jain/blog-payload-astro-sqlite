@@ -376,8 +376,9 @@ The `Posts` collection includes the following fields:
 - `tags`: a relationship field (can have many entries) linking the post to one or more tag entries.
 - `content`: a richText field using the Lexical editor, where the main post content is written.
 - `publishedAt`: a date field, shown in the admin sidebar, representing when the post was or will be published.
+- `versions: { drafts: true }` on Posts enables the draft/publish workflow.
 
-Every collection uses `read: ({ req: { user } }) => Boolean(user)`. This means any read request, whether from the admin panel or the REST API, must include a valid credential. `versions: { drafts: true }` on Posts enables the draft/publish workflow.
+Every collection uses `read: ({ req: { user } }) => Boolean(user)`. This means any read request, whether from the admin panel or the REST API, must include a valid credential. 
 
 ## Start Payload and create an API key
 
