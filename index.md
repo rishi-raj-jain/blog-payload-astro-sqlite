@@ -512,7 +512,10 @@ export async function getPost(slug: string) {
 }
 ```
 
-Two things to note about the Payload REST API. First, bracket notation is required for `where` queries. The correct form is `where[slug][equals]=value`. JSON-encoded query strings will silently return empty results. Second, `depth=2` tells Payload to expand relationship fields (author, tags, cover) inline so the Astro pages do not need a second fetch.
+In the code above:
+
+- Bracket notation is required for `where` queries in the Payload REST API. For example, use `where[slug][equals]=value`. If you use JSON-encoded query strings instead, you will get empty results.
+- The `depth=2` parameter instructs Payload to expand related fields (like author, tags, and cover) directly in the response, so additional fetches are not necessary on the Astro pages.
 
 ## Build the blog index page
 
