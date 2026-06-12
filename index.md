@@ -17,9 +17,9 @@ To follow along in this guide, you will need the following:
 
 ## Provision a Globally Replicated SQLite Database
 
-Using [Bunny Database](https://bunny.net/database/) gives you SQLite with libSQL replication globally, so the session reads stay fast no matter where your container runs.
+[Bunny Database](https://bunny.net/database/) is a globally replicated SQLite service built on libSQL, so your data stays close to every container replica regardless of which region it runs in.
 
-To get started, open the [Bunny dashboard](https://dash.bunny.net) and go to **Edge Platform > Database**. Click **Create Your First Database**, enter the **Database name**, select **Automatic region selection** and click **Add database**.
+To get started, open the [Bunny dashboard](https://dash.bunny.net) and go to **Edge Platform > Database**. Click **Create Your First Database**, enter the **Database name**, select **Automatic region selection**, and click **Add database**.
 
 ![Bunny Database create database form with database name and automatic region selection](./images/database-1.png)
 
@@ -27,7 +27,7 @@ Once it's provisioned, you will see that the Database URL and a Full-Access Toke
 
 ![Bunny Database Access tab showing the libSQL URL and full-access token](./images/database-2.png)
 
-Save the Database URL and Full-Access Token somewhere safe to be used as the `BUNNY_DATABASE_URL` and `BUNNY_DATABASE_AUTH_TOKEN` further in the guide.
+Keep the Database URL and Full-Access Token somewhere safe. You will use them as `DATABASE_URL` and `DATABASE_AUTH_TOKEN` when configuring Payload.
 
 ## Provision a Bunny Storage Zone
 
@@ -37,13 +37,13 @@ Open the Bunny dashboard and go to **Delivery > Storage**. Click **Add Storage Z
 
 ![](./images/storage-1.png)
 
-Save the storage zone name somewhere safe to be used as the `BUNNY_ZONE_NAME` further in the guide.
+Keep the storage zone name somewhere safe. You will use it as `BUNNY_ZONE_NAME` when configuring Payload.
 
 Navigate to the **Access > API / HTTP** tab and copy the **Access Key > Password**.
 
 ![](./images/storage-2.png)
 
-Save the password somewhere safe to be used as the `BUNNY_STORAGE_API_KEY` further in the guide.
+Keep the password somewhere safe. You will use it as `BUNNY_STORAGE_API_KEY` when configuring Payload.
 
 ![](./images/pull-1.png)
 
@@ -51,7 +51,7 @@ Next, create a CDN pull zone to serve stored files publicly. Go to **Delivery > 
 
 ![](./images/pull-2.png)
 
-Save the linked hostname somewhere safe to be used as the `BUNNY_HOSTNAME` further in the guide.
+Keep the linked hostname somewhere safe. You will use it as `BUNNY_HOSTNAME` when configuring Payload.
 
 ## Create a Payload CMS project
 
@@ -422,7 +422,7 @@ export default {
 }
 ```
  
-Create a layout at layouts/Layout.astro:
+Create `src/layouts/Layout.astro`:
 
 ```astro
 ---
@@ -546,7 +546,7 @@ const posts = await getPosts();
 
 ## Create dynamic post pages
 
-Create `src/pages/[slug].astro` to generate one page per published post at build time:
+Create `src/pages/[slug].astro` to render individual post pages on the server:
 
 ```astro
 ---
@@ -596,13 +596,13 @@ if (!post) return Astro.redirect("/404");
 </Layout>
 ```
 
-`getStaticPaths` calls `getPosts` to enumerate all published post slugs. Astro generates one HTML file per post at build time. Payload stores `content` as Lexical JSON, so `convertLexicalToHTML` from `@payloadcms/richtext-lexical/html` converts it to HTML on the server during the build. Since cover image URLs come from Bunny CDN (`disablePayloadAccessControl: true` in the storage plugin), images are served directly from the edge without the request touching the Payload container.
+Both pages run in server-side rendering mode (`export const prerender = false`), which means Astro fetches data from Payload on every request rather than at build time. Payload stores `content` as Lexical JSON, so `convertLexicalToHTML` from `@payloadcms/richtext-lexical/html` converts it to HTML on the server before the response is sent. Cover image URLs come from Bunny CDN (`disablePayloadAccessControl: true` in the storage plugin), so images are served directly from the edge without the request touching the Payload container.
 
 Start the Astro dev server with `npm run dev` and open `http://localhost:4321` to confirm the index and post pages load.
 
 ## Containerize Payload CMS
 
-The Dockerfile in the scaffolded project already includes a multi-stage build. Confirm `src/Dockerfile` (or the root `Dockerfile`) matches the following pattern. It auto-detects pnpm from the lockfile and copies standalone output:
+Create a `Dockerfile` at the project root. The build uses corepack to enable pnpm, compiles the Next.js standalone output, and copies only the necessary artifacts into the final image:
 
 ```dockerfile
 # File: backend-payload-sqlite/Dockerfile
@@ -652,7 +652,7 @@ payload.db
 
 ## Containerize Astro
 
-Astro does not fetch content from Payload at build time since we are not prenrendering, so `PAYLOAD_URL` and `PAYLOAD_API_KEY` are not required during the buld time.
+Because both Astro pages run in server-side rendering mode, `PAYLOAD_URL` and `PAYLOAD_API_KEY` are runtime variables. They do not need to be present during the Docker build. Magic Containers injects them at startup.
 
 Create `blog-astro-payload/Dockerfile`:
 
@@ -745,7 +745,7 @@ jobs:
 
 No `build-args` are needed here because the Payload build does not require database credentials. Push a commit to `main` to trigger the first build. Once the image lands in GitHub Container Registry, create the Magic Containers app.
 
-Once pushed, wait for the build & push step to complete that shows the image name and the image tag:
+Once pushed, wait for the build and push step to complete. The workflow output shows the full image name and tag that you will paste into Magic Containers:
 
 ![](./images/commit.png)
 
@@ -755,7 +755,7 @@ Once pushed, wait for the build & push step to complete that shows the image nam
 
 Open the Bunny dashboard and go to **Magic Containers**. Click **Add Application**, paste the image URL from GitHub Container Registry, and click **Create Application**.
 
-Set the container name as **app**, click **Add endpoint** and then enter the env vars from the previously obtained steps:
+Set the container name to **app**, click **Add endpoint**, and then add the environment variables from the steps above:
 
 ![](./images/container-2.png)
 
@@ -773,7 +773,7 @@ BUNNY_HOSTNAME           → blog-media.b-cdn.net
 
 Magic Containers injects these at startup so they never get baked into the image layer. Because the adapter uses an embedded replica (`file:./payload.db`), mount a persistent volume at `/app/payload.db` so the local database file survives container restarts.
 
-After the app is created, copy the **App ID** and the **Deployment URL** to be used as BUNNYNET_API_KEY and APP_ID in the next step.
+After the app is created, copy the **App ID** and the **Deployment URL**. The App ID goes into the `APP_ID` secret in the next step, and the Deployment URL is the value for `NEXT_PUBLIC_SERVER_URL` in your environment variables.
 
 ![](./images/container-3.png)
 
@@ -798,7 +798,7 @@ Add the deploy step to `build.yml`:
           api_key: ${{ secrets.BUNNYNET_API_KEY }}
 ```
 
-Push to git to deploy automatically
+With all that done, every future push to `main` builds a new image, pushes it to GHCR, and rolls it out on Magic Containers.
 
 ## Deploy Astro to Magic Containers
 
@@ -894,7 +894,7 @@ Add the deploy step to `build.yml`:
           api_key: ${{ secrets.BUNNYNET_API_KEY }}
 ```
 
-Push to git to deploy automatically.
+With all that done, every future push to `main` builds a new image, pushes it to GHCR, and rolls it out on Magic Containers.
 
 ## Summary
 
