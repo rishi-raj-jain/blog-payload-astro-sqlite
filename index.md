@@ -216,7 +216,7 @@ export default withPayload(nextConfig, { devBundleServerPackages: false })
 
 ## Define the collections in TypeScript
 
-Create a `src/collections/` folder if it does not already exist, then add the following five files.
+Create a `src/collections/` folder if it does not already exist, then add (or update) the following five files.
 
 ### Users
 
