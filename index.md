@@ -745,11 +745,19 @@ jobs:
 
 No `build-args` are needed here because the Payload build does not require database credentials. Push a commit to `main` to trigger the first build. Once the image lands in GitHub Container Registry, create the Magic Containers app.
 
+Once pushed, wait for the build & push step to complete that shows the image name and the image tag:
+
+![](./images/commit.png)
+
 ### Create the Magic Containers app for Payload
+
+![](./images/container-1.png)
 
 Open the Bunny dashboard and go to **Magic Containers**. Click **Add Application**, paste the image URL from GitHub Container Registry, and click **Create Application**.
 
-After the app is created, copy the **App ID** and the **Deployment URL**.
+Set the container name as **app**, click **Add endpoint** and then enter the env vars from the previously obtained steps:
+
+![](./images/container-2.png)
 
 Open the **Environment Variables** tab and add the runtime variables:
 
@@ -765,13 +773,17 @@ BUNNY_HOSTNAME           → blog-media.b-cdn.net
 
 Magic Containers injects these at startup so they never get baked into the image layer. Because the adapter uses an embedded replica (`file:./payload.db`), mount a persistent volume at `/app/payload.db` so the local database file survives container restarts.
 
+After the app is created, copy the **App ID** and the **Deployment URL** to be used as BUNNYNET_API_KEY and APP_ID in the next step.
+
+![](./images/container-3.png)
+
 ### Enable automatic deploys
 
 Add these secrets to your GitHub repository under **Settings > Secrets and variables > Actions**:
 
 ```
-BUNNYNET_API_KEY    → your Bunny API key
-APP_ID          → the App ID from Magic Containers
+BUNNYNET_API_KEY    → your [Bunny API key](https://dash.bunny.net/account/api-key)
+APP_ID          → the App ID from the Magic Containers URL
 ```
 
 Add the deploy step to `build.yml`:
