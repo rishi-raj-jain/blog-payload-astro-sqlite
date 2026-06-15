@@ -453,17 +453,43 @@ Next, create a reusable layout component at `src/layouts/Layout.astro` with the 
 // File: src/layouts/Layout.astro
 
 import '../styles/global.css'
+
+interface Props {
+  title?: string;
+}
+
+const { title = "Blog" } = Astro.props;
 ---
 
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
   </head>
-  <body class="bg-white px-6 py-12 max-w-3xl mx-auto">
-    <slot />
+  <body class="bg-white text-gray-900 antialiased min-h-screen flex flex-col">
+    <header class="border-b border-gray-100 sticky top-0 z-10 bg-white/90 backdrop-blur-sm">
+      <div class="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
+        <a href="/" class="text-sm font-semibold tracking-tight text-gray-900 hover:text-gray-600 transition-colors">
+          The Blog
+        </a>
+        <nav class="flex items-center gap-6 text-sm text-gray-500">
+          <a href="/" class="hover:text-gray-900 transition-colors">Posts</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="flex-1 max-w-3xl mx-auto w-full px-6 py-12">
+      <slot />
+    </main>
+
+    <footer class="border-t border-gray-100 mt-auto">
+      <div class="max-w-3xl mx-auto px-6 py-8 text-sm text-gray-400 text-center">
+        All rights reserved.
+      </div>
+    </footer>
   </body>
 </html>
 ```
@@ -533,37 +559,68 @@ import Layout from "../layouts/Layout.astro";
 const posts = await getPosts();
 ---
 
-<Layout>
-  <h1 class="text-4xl font-bold mb-10">Blog</h1>
-  <ul class="space-y-10">
+<Layout title="Blog">
+  <div class="mb-12">
+    <h1 class="text-3xl font-bold tracking-tight text-gray-900">All Posts</h1>
+    <p class="mt-2 text-gray-500 text-sm">{posts.length} {posts.length === 1 ? "article" : "articles"}</p>
+  </div>
+
+  {posts.length === 0 && (
+    <p class="text-gray-400 text-sm">No posts yet. Check back soon.</p>
+  )}
+
+  <ul class="divide-y divide-gray-100">
     {
       posts.map((post: any) => (
-        <li>
-          {post.cover?.url && (
-            <img
-              src={post.cover.url}
-              alt={post.cover.alt || post.title}
-              class="w-full rounded-xl mb-4 object-cover h-52"
-            />
-          )}
-          <a
-            href={`/${post.slug}`}
-            class="text-2xl font-semibold hover:underline"
-          >
-            {post.title}
-          </a>
-          {post.author?.name && (
-            <p class="mt-1 text-sm text-gray-500">by {post.author.name}</p>
-          )}
-          {post.tags?.length > 0 && (
-            <div class="mt-2 flex gap-2 flex-wrap">
-              {post.tags.map((tag: any) => (
-                <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                  {tag.name}
-                </span>
-              ))}
+        <li class="py-8 first:pt-0 last:pb-0 group">
+          <a href={`/${post.slug}`} class="block">
+            {post.cover?.url && (
+              <div class="overflow-hidden rounded-xl mb-5">
+                <img
+                  src={post.cover.url}
+                  alt={post.cover.alt || post.title}
+                  class="w-full object-cover h-56 transition-transform duration-300 group-hover:scale-[1.02]"
+                />
+              </div>
+            )}
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex-1 min-w-0">
+                {post.tags?.length > 0 && (
+                  <div class="flex gap-2 flex-wrap mb-2">
+                    {post.tags.map((tag: any) => (
+                      <span class="text-xs font-medium text-indigo-600 uppercase tracking-wide">
+                        {tag.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <h2 class="text-xl font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors leading-snug">
+                  {post.title}
+                </h2>
+                {post.author?.name && (
+                  <div class="mt-3 flex items-center gap-2">
+                    {post.author.avatar?.url ? (
+                      <img
+                        src={post.author.avatar.url}
+                        alt={post.author.name}
+                        class="w-6 h-6 rounded-full object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 text-xs font-semibold flex items-center justify-center flex-shrink-0">
+                        {post.author.name.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                    <span class="text-sm text-gray-400">{post.author.name}</span>
+                  </div>
+                )}
+              </div>
+              <span class="flex-shrink-0 mt-1 text-gray-300 group-hover:text-indigo-400 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 8.25 21 12m0 0-3.75 3.75M21 12H3" />
+                </svg>
+              </span>
             </div>
-          )}
+          </a>
         </li>
       ))
     }
@@ -588,38 +645,79 @@ import { convertLexicalToHTML } from "@payloadcms/richtext-lexical/html";
 const { slug } = Astro.params;
 if (!slug) return Astro.redirect("/404");
 const post = await getPost(slug);
-const html = convertLexicalToHTML({ data: post.content });
 if (!post) return Astro.redirect("/404");
+const html = convertLexicalToHTML({ data: post.content });
 ---
 
-<Layout>
-  {
-    post.cover?.url && (
-      <img
-        src={post.cover.url}
-        alt={post.cover.alt || post.title}
-        class="w-full rounded-xl mb-8 object-cover h-72"
-      />
-    )
-  }
-  <h1 class="text-4xl font-bold mb-4">{post.title}</h1>
-  {
-    post.author?.name && (
-      <p class="text-sm text-gray-500 mb-6">by {post.author.name}</p>
-    )
-  }
+<Layout title={post.title}>
+  <div class="mb-8">
+    <a
+      href="/"
+      class="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-900 transition-colors"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+      </svg>
+      All posts
+    </a>
+  </div>
+
   {
     post.tags?.length > 0 && (
-      <div class="flex gap-2 flex-wrap mb-8">
+      <div class="flex gap-2 flex-wrap mb-4">
         {post.tags.map((tag: any) => (
-          <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+          <span class="text-xs font-medium text-indigo-600 uppercase tracking-wide">
             {tag.name}
           </span>
         ))}
       </div>
     )
   }
-  <article class="prose max-w-none" set:html={html || ""} />
+
+  <h1 class="text-4xl font-bold tracking-tight text-gray-900 leading-tight mb-4">
+    {post.title}
+  </h1>
+
+  {
+    post.author?.name && (
+      <div class="flex items-center gap-3 mb-8">
+        {post.author.avatar?.url ? (
+          <img
+            src={post.author.avatar.url}
+            alt={post.author.name}
+            class="w-9 h-9 rounded-full object-cover flex-shrink-0"
+          />
+        ) : (
+          <span class="w-9 h-9 rounded-full bg-indigo-100 text-indigo-600 text-sm font-semibold flex items-center justify-center flex-shrink-0">
+            {post.author.name.charAt(0).toUpperCase()}
+          </span>
+        )}
+        <span class="text-sm text-gray-500">{post.author.name}</span>
+      </div>
+    )
+  }
+
+  {
+    post.cover?.url && (
+      <div class="overflow-hidden rounded-2xl mb-10">
+        <img
+          src={post.cover.url}
+          alt={post.cover.alt || post.title}
+          class="w-full object-cover h-80"
+        />
+      </div>
+    )
+  }
+
+  <article
+    class="prose prose-gray prose-lg max-w-none
+      prose-headings:font-semibold prose-headings:tracking-tight
+      prose-a:text-indigo-600 prose-a:no-underline hover:prose-a:underline
+      prose-code:text-indigo-600 prose-code:bg-indigo-50 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-normal
+      prose-pre:bg-gray-950 prose-pre:text-gray-100
+      prose-blockquote:border-indigo-300 prose-blockquote:text-gray-500"
+    set:html={html || ""}
+  />
 </Layout>
 ```
 
