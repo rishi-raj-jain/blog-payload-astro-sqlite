@@ -388,13 +388,25 @@ Start the development server:
 pnpm dev
 ```
 
-Payload creates the local `payload.db` file, pushes the schema in development mode, and syncs the tables to Bunny Database. Open `http://localhost:3000/admin`, create your first admin account, and then add some Author, Tag, and Post entries. Upload cover images through the Media collection. They land in Bunny Storage and come back as CDN URLs in the API response.
+It will automatically create a local `payload.db` file and apply your schema in development mode. In the background, Payload also synchronizes your tables to Bunny Database, ensuring your data is ready for use.
+
+Now, visit `http://localhost:3000/admin` in your browser. The first time you access the admin panel, you’ll be prompted to create your admin account. After logging in, start by adding some content:
+
+1. **Authors**: Navigate to the **Authors** collection and create an author entry. This entry is required before you can assign authors to posts.
+2. **Media**: Add media files in the **Media** collection. These files can be used as cover images or included in your posts.
+3. **Posts**: In the **Posts** collection, click **Create New**. Complete all the required fields i.e. the post's title and slug, select or upload a cover image (which is stored in Bunny Storage and returned as a CDN URL via the API), assign an author, and add the post content using the rich-text editor. Don’t forget to set a **Published At** date in the sidebar. When you’re ready, click **Publish changes** to make the post available.
+
+By following this sequence, you’ll ensure that all necessary references (authors and media) are in place and that your content is correctly organized and accessible both in the Payload admin and through the API.
+
+![Payload admin Posts collection listing published posts with title, author, and published date](./images/posts-1.png)
+
+![Payload admin post editor showing title, cover image, author, content, and published date](./images/posts-2.png)
 
 ### Generate an API key for Astro
 
-![](./images/user-1.png)
-
 In the Payload admin panel (`/admin/collections/users/1`), go to **Users**, open your admin user, click **Enable API Key** and click **Save**. Copy the key and save it as `PAYLOAD_API_KEY`. The Astro frontend will send it as an HTTP header on every request.
+
+![](./images/user-1.png)
 
 ## Create a new Astro application
 
@@ -727,7 +739,11 @@ In the pages above:
 - Payload stores the `content` field as Lexical JSON; `convertLexicalToHTML` from `@payloadcms/richtext-lexical/html` is used on the server to generate HTML before sending the response.
 - Cover image URLs are provided by Bunny CDN (because `disablePayloadAccessControl: true` is set in the storage plugin), so images are served directly from the edge, bypassing the Payload container.
 
-Start the Astro dev server with `npm run dev` and open `http://localhost:4321` to confirm the index and post pages load.
+Start the Astro dev server with `npm run dev` and open `http://localhost:4321` to confirm the index and post pages load. The index page lists every published post with its cover image, title, and author. Clicking a post opens the full article with the Lexical content rendered as HTML.
+
+![Astro blog index page listing published posts with cover images and author avatars](./images/blog-1.png)
+
+![Astro blog post page showing title, author, cover image, and rendered content](./images/blog-2.png)
 
 ## Containerize Payload CMS
 
