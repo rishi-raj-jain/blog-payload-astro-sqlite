@@ -1012,9 +1012,7 @@ jobs:
           api_key: ${{ secrets.BUNNYNET_API_KEY }}
 ```
 
-No `build-args` are needed here because the Astro build does not Payload values. Push a commit to `main` to trigger the first build.
-
-Once pushed, wait for the build and push step to complete. The workflow output shows the full image name and tag that you will paste into Magic Containers:
+No `build-args` are needed here because the Astro build does not Payload values. Push a commit to `main` to trigger the first build. Wait for the build and push step to complete. The workflow output shows the full image name and tag that you will paste into Magic Containers:
 
 ![](./images/commit-2.png)
 
