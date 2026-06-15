@@ -891,9 +891,7 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 ```
 
-No `build-args` are needed here because the Payload build does not require database credentials. Push a commit to `main` to trigger the first build. Once the image lands in GitHub Container Registry, create the Magic Containers app.
-
-Once pushed, wait for the "Build and push" step to complete. The workflow output shows the full image name and tag that you will paste into Magic Containers:
+No `build-args` are needed here because the Payload build does not require database credentials. Push a commit to `main` to trigger the first build. Wait for the "Build and push" step to complete. The workflow output shows the full image name and tag that you will paste into Magic Containers:
 
 ![](./images/commit.png)
 
