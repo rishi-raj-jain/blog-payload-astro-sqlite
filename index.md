@@ -6,7 +6,7 @@ meta_description: A step-by-step guide for building a fully self-hosted blog wit
 
 Whenever I want to self-host a blog with a CMS, I often find myself running the backend on the CMS provider’s cloud and hosting the frontend elsewhere, making it a fragmented, multi-service setup. Bunny solves this by providing every layer you need for a self-hosted blog. [Bunny Database](https://bunny.net/database/) offers globally replicated SQLite over libSQL, [Bunny Storage](https://bunny.net/storage/) manages your media files, [Bunny CDN](https://bunny.net/cdn/) serves them quickly from the edge, and [Magic Containers](https://bunny.net/magic-containers/) lets you deploy your containerized apps worldwide.
 
-In this guide, I will show you how to set up a Payload CMS app, create collections for posts, authors, and tags, build an Astro frontend that gets data from Payload, and deploy everything to Magic Containers.
+In this guide, I will show you how to set up a Payload CMS app, create collections for posts, authors, and tags, build an Astro frontend that gets data from Payload, and deploy both services to Magic Containers.
 
 ## Prerequisites
 
@@ -15,6 +15,47 @@ To follow along in this guide, you will need the following:
 - [Node.js 20](https://nodejs.org/en) or later
 - A [Bunny.net](https://bunny.net) account
 - A [GitHub](https://github.com) account
+
+## Project layout
+
+You will maintain two separate GitHub repositories: one for the Payload CMS backend and one for the Astro frontend. Each project has its own folder, and each is deployed in a distinct Magic Container.
+
+**Repository 1: Payload CMS backend** (`backend-payload-sqlite`)
+
+```
+backend-payload-sqlite/
+├── collections/
+│   ├── Posts.ts
+│   ├── Authors.ts
+│   └── Tags.ts
+├── payload.config.ts
+├── Dockerfile
+├── package.json
+├── pnpm-lock.yaml
+└── .github/workflows/
+    └── deploy-backend.yml
+```
+
+**Repository 2: Astro frontend** (`blog-astro-payload`)
+
+```
+blog-astro-payload/
+├── src/
+│   ├── pages/
+│   │   ├── index.astro
+│   │   └── [slug].astro
+│   └── layouts/
+│       └── Layout.astro
+├── public/
+│   └── favicon.svg
+├── tailwind.config.mjs
+├── package.json
+├── astro.config.mjs
+└── .github/workflows/
+    └── deploy-frontend.yml
+```
+
+Each repository is independent, with its own GitHub Actions workflow and container image. Keep the project folders side by side on your machine, but make sure to initialize and push each to its **own** GitHub repository (for example, `backend-payload-sqlite` and `blog-astro-payload`). This separation allows for independent workflows and deployments as container image tags are derived from the repository name, ensuring each Magic Container app remains decoupled and manageable.
 
 ## Provision a Globally Replicated SQLite Database
 
@@ -58,6 +99,8 @@ Once it's provisioned, go to **General > Hostnames** and look for your hostname 
 Keep the linked hostname somewhere safe. You will use it as `BUNNY_HOSTNAME` when configuring Payload.
 
 ## Create a Payload CMS project
+
+This is the **backend** half of the stack. Everything in this section lives in the `backend-payload-sqlite` folder and will eventually be pushed to its own GitHub repository.
 
 Payload's project generator creates a Next.js application with the admin panel embedded. Run the following command to get started:
 
@@ -407,7 +450,25 @@ In the Payload admin panel (`/admin/collections/users/1`), go to **Users**, open
 
 ![](./images/user-1.png)
 
+### Push the backend to GitHub
+
+With Payload running locally and your content in place, initialize a git repository in the backend project and push it to the GitHub repository you created for it:
+
+```bash
+cd backend-payload-sqlite
+git init
+git add .
+git commit -m "Initial Payload CMS backend"
+git branch -M main
+git remote add origin https://github.com/your-username/backend-payload-sqlite.git
+git push -u origin main
+```
+
+Replace `your-username/backend-payload-sqlite` with your actual repository path. Do not commit `.env` (it should already be excluded by `.gitignore`).
+
 ## Create a new Astro application
+
+This is the **frontend** half of the stack. It lives in a separate `blog-astro-payload` folder and gets its own GitHub repository, independent of the Payload backend.
 
 Open a new terminal at the parent folder (outside `backend-payload-sqlite`) and scaffold the frontend using:
 
@@ -746,6 +807,21 @@ Start the Astro dev server with `npm run dev` and open `http://localhost:4321` t
 
 ![Astro blog post page showing title, author, cover image, and rendered content](./images/blog-2.png)
 
+### Push the frontend to GitHub
+
+Initialize a git repository in the Astro project (or use the one created by the Astro scaffold) and push it to its own GitHub repo:
+
+```bash
+cd blog-astro-payload
+git add .
+git commit -m "Initial Astro frontend"
+git branch -M main
+git remote add origin https://github.com/your-username/blog-astro-payload.git
+git push -u origin main
+```
+
+Replace `your-username/blog-astro-payload` with your actual repository path. Like the backend, keep `.env` out of version control.
+
 ## Containerize Payload CMS
 
 Create a `Dockerfile` at the project root with the following code. The build uses corepack to enable pnpm, compiles the Next.js standalone output, and copies only the necessary artifacts into the final image:
@@ -840,11 +916,11 @@ dist
 
 ## Deploy Payload CMS to Magic Containers
 
-In this section, you'll containerize and deploy your Payload CMS to Magic Containers, making it easy to run and manage in a production environment.
+In this section, you'll containerize and deploy your Payload CMS to Magic Containers. All steps below happen inside the **`backend-payload-sqlite` GitHub repository**.
 
 ### Push the initial image
 
-Create `.github/workflows/build.yml` inside `backend-payload-sqlite` with the following code:
+Create `.github/workflows/build.yml` in the root of your **backend** repository with the following code:
 
 ```yaml
 # File: .github/workflows/build.yml
@@ -891,7 +967,9 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 ```
 
-No `build-args` are needed here because the Payload build does not require database credentials. Push a commit to `main` to trigger the first build. Wait for the "Build and push" step to complete. The workflow output shows the full image name and tag that you will paste into Magic Containers:
+Because `IMAGE_NAME` is set to `${{ github.repository }}`, pushing this workflow to `your-username/backend-payload-sqlite` produces an image tagged `ghcr.io/your-username/backend-payload-sqlite:<commit-sha>`. That is the image path you will enter when creating the Payload Magic Containers app.
+
+No `build-args` are needed here because the Payload build does not require database credentials. Commit the workflow file to the backend repo and push to `main` to trigger the first build. Wait for the "Build and push" step to complete. The workflow output shows the full image name and tag that you will paste into Magic Containers:
 
 ![](./images/commit.png)
 
@@ -932,12 +1010,14 @@ While the container is being deployed, copy the following two values:
 
 ### Enable automatic deploys
 
-Add these secrets to your GitHub repository under **Settings > Secrets and variables > Actions**:
+Add these secrets to the **backend** GitHub repository under **Settings > Secrets and variables > Actions**:
 
 ```
 BUNNYNET_API_KEY    → your [Bunny API key](https://dash.bunny.net/account/api-key)
-APP_ID          → the App ID from the Magic Containers URL
+APP_ID          → the App ID from the Magic Containers URL (for the Payload app)
 ```
+
+Each repository has its own `APP_ID` secret pointing to its respective Magic Containers app.
 
 Now that the app exists and the secrets are in place, add the Magic Containers update step to your GitHub workflow and push to Git:
 
@@ -951,15 +1031,17 @@ Now that the app exists and the secrets are in place, add the Magic Containers u
           api_key: ${{ secrets.BUNNYNET_API_KEY }}
 ```
 
-Pushing this change will automatically trigger the build of a new container image and updates your Magic Containers application with the latest image tag.
+Pushing this change to the **backend repo** will automatically trigger the build of a new container image and update your Payload Magic Containers application with the latest image tag.
 
-With all that done, every future push to `main` builds a new image, pushes it to GHCR, and rolls it out on Magic Containers.
+With all that done, every future push to `main` on the backend repository builds a new image, pushes it to GHCR, and rolls it out on Magic Containers.
 
 ## Deploy Astro to Magic Containers
 
+All steps in this section happen inside the **`blog-astro-payload` GitHub repository** (a separate repo from the Payload backend), with its own workflow, secrets, and Magic Containers app.
+
 ### Push the initial image
 
-Create `.github/workflows/build.yml` inside `blog-astro-payload`:
+Create `.github/workflows/build.yml` in the root of your **frontend** repository:
 
 ```yaml
 # File: blog-astro-payload/.github/workflows/build.yml
@@ -1012,7 +1094,9 @@ jobs:
           api_key: ${{ secrets.BUNNYNET_API_KEY }}
 ```
 
-No `build-args` are needed here because the Astro build does not Payload values. Push a commit to `main` to trigger the first build. Wait for the build and push step to complete. The workflow output shows the full image name and tag that you will paste into Magic Containers:
+Because `IMAGE_NAME` is set to `${{ github.repository }}`, pushing this workflow to `your-username/blog-astro-payload` produces an image tagged `ghcr.io/your-username/blog-astro-payload:<commit-sha>`. That is the image path you will enter when creating the Astro Magic Containers app.
+
+No `build-args` are needed here because the Astro build does not require Payload values at build time. Commit the workflow file to the frontend repo and push to `main` to trigger the first build. Wait for the build and push step to complete. The workflow output shows the full image name and tag that you will paste into Magic Containers:
 
 ![](./images/commit-2.png)
 
@@ -1048,12 +1132,14 @@ While the container is being deployed, copy the following value:
 
 ### Enable automatic deploys
 
-Add these secrets to your GitHub repository under **Settings > Secrets and variables > Actions**:
+Add these secrets to the **frontend** GitHub repository under **Settings > Secrets and variables > Actions**:
 
 ```
 BUNNYNET_API_KEY    → your [Bunny API key](https://dash.bunny.net/account/api-key)
-APP_ID          → the App ID from the Magic Containers URL
+APP_ID          → the App ID from the Magic Containers URL (for the Astro app)
 ```
+
+Each repository has its own `APP_ID` secret pointing to its respective Magic Containers app. The backend and frontend repos do not share deployment secrets.
 
 Now that the app exists and the secrets are in place, add the Magic Containers update step to your GitHub workflow and push to Git:
 
@@ -1067,8 +1153,8 @@ Now that the app exists and the secrets are in place, add the Magic Containers u
           api_key: ${{ secrets.BUNNYNET_API_KEY }}
 ```
 
-With all that done, every future push to `main` builds a new image, pushes it to GHCR, and rolls it out on Magic Containers.
+With all that done, every future push to `main` on the frontend repository builds a new image, pushes it to GHCR, and rolls it out on Magic Containers.
 
 ## Summary
 
-In this guide, you built a fully self-hosted blog where Payload CMS connects to Bunny Database over libSQL using an embedded replica to avoid replication-lag errors, media uploads go to Bunny Storage with CDN URLs returned automatically, and the Astro frontend reads from Payload's authenticated REST API using a user API key. The complete stack (database, storage, compute, and CDN) runs on Bunny infrastructure without any third-party managed services.
+In this guide, you built a fully self-hosted blog across two GitHub repositories: a Payload CMS backend and an Astro frontend, each deployed to its own Magic Containers app. Payload connects to Bunny Database over libSQL using an embedded replica to avoid replication-lag errors, media uploads go to Bunny Storage with CDN URLs returned automatically, and the Astro frontend reads from Payload's authenticated REST API using a user API key. The complete stack (database, storage, compute, and CDN) runs on Bunny infrastructure without any third-party managed services.
