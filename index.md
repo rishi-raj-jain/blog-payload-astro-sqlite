@@ -12,7 +12,7 @@ In this guide, I will show you how to set up a Payload CMS app, create collectio
 
 To follow along in this guide, you will need the following:
 
-- [Node.js 18](https://nodejs.org/en) or later
+- [Node.js 20](https://nodejs.org/en) or later
 - A [Bunny.net](https://bunny.net) account
 - A [GitHub](https://github.com) account
 
