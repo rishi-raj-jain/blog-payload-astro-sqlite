@@ -126,7 +126,6 @@ const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 export default buildConfig({
-  cors: '*',
   admin: {
     user: Users.slug,
     importMap: {
@@ -173,7 +172,6 @@ In the code above:
   - The config sets up Payload to use the Lexical editor for rich content editing in the admin panel.
   - The bunnyStorage plugin is configured to store media uploads on Bunny CDN, with the relevant API key, hostname, and storage zone injected from environment variables.
   - The SQLite adapter is configured to use an **embedded replica** with `url: 'file:./payload.db'`. This stores a local SQLite file that Payload reads from, while `syncUrl` connects to Bunny Database for remote synchronization. Each write is sent immediately to the remote database and the local file is kept in sync, preventing issues with replication lag (such as reading stale data right after a write).
-  - Setting `cors: '*'` enables the Astro frontend to access Payload’s REST API from a different origin.
 
 ## Set up `next.config.ts`
 
