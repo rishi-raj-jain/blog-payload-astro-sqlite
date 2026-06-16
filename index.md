@@ -446,6 +446,8 @@ Next, add the Tailwind CSS integration to your Astro app. Run the following comm
 npx astro add tailwind
 ```
 
+This installs `@tailwindcss/vite` (the official Tailwind CSS plugin for Vite) and sets up a `styles/global.css` automatically.
+
 Next, update `tailwind.config.mjs` to enable the typography plugin to render the article with pre-build classes:
 
 ```javascript
