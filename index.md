@@ -1,5 +1,5 @@
 ---
-meta_title: Build a self-hosted blog with Payload CMS, Astro, and SQLite on Bunny
+meta_title: Build a self-hosted blog with Payload CMS, Astro, and Bunny Database
 meta_title_another: Self-Host a Blog Entirely on Bunny with Payload CMS and Astro
 meta_description: A step-by-step guide for building a fully self-hosted blog with Payload CMS backed by Bunny Database (libSQL/SQLite), an Astro frontend, media on Bunny Storage, and both services deployed to Magic Containers with Bunny CDN in front.
 ---
