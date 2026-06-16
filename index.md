@@ -493,13 +493,13 @@ The packages above provide:
 - [@payloadcms/richtext-lexical](https://www.npmjs.com/package/@payloadcms/richtext-lexical): exposes `convertLexicalToHTML`, which converts Payload's Lexical JSON content to HTML at build time.
 - [@tailwindcss/typography](https://tailwindcss.com/docs/typography-plugin): the `prose` class for rendering article HTML.
 
-Next, add the Node.js adapter so your Astro app can be built for standalone Node.js deployment. Run the following command and accept all prompts:
+Next, add the Node.js adapter with the following command so your Astro app can be built for standalone Node.js deployment:
 
 ```
-npx astro add node
+npx astro add node --yes
 ```
 
-Next, add the Tailwind CSS integration to your Astro app. Run the following command and accept all prompts:
+Next, add the Tailwind CSS integration to your Astro app with the following command:
 
 ```
 npx astro add tailwind
