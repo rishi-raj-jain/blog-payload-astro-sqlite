@@ -502,7 +502,7 @@ npx astro add node --yes
 Next, add the Tailwind CSS integration to your Astro app with the following command:
 
 ```
-npx astro add tailwind
+npx astro add tailwind --yes
 ```
 
 This installs `@tailwindcss/vite` (the official Tailwind CSS plugin for Vite) and sets up a `styles/global.css` automatically.
